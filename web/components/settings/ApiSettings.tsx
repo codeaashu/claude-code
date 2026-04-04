@@ -7,6 +7,7 @@ import {
   DEFAULT_PROVIDER_URLS,
   PROVIDERS,
   getDefaultModelForProvider,
+  getModelOptions,
   getProviderHelpText,
   getProviderKeyLabel,
   getProviderKeyPlaceholder,
@@ -173,6 +174,31 @@ export function ApiSettings() {
             "text-surface-200 placeholder-surface-600 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
           )}
         />
+      </SettingRow>
+
+      <SettingRow
+        label="Model"
+        description="Select the model to use for requests with the selected provider."
+        stack
+      >
+        <select
+          value={settings.model}
+          onChange={(e) => updateSettings({ model: e.target.value })}
+          aria-label="Model"
+          className={cn(
+            "w-full rounded-md border border-surface-700 bg-surface-800 px-3 py-2 text-sm",
+            "text-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+          )}
+        >
+          {getModelOptions(settings.provider).map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label} — {m.id}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-surface-500">
+          {getModelOptions(settings.provider).find((m) => m.id === settings.model)?.description ?? ""}
+        </p>
       </SettingRow>
 
       <SettingRow label="Connection status" description="Probe the selected provider without sending a chat request.">
