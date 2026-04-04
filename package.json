@@ -1,13 +1,13 @@
 {
-  "name": "@anthropic-ai/claude-code",
+  "name": "@ag-solution/ag-claw-reference",
   "version": "0.0.0-leaked",
-  "description": "Anthropic Claude Code CLI — leaked source (2026-03-31). Not an official release.",
+  "description": "AG-Claw research reference workspace. Includes clean-room pilot surfaces plus non-authoritative reference material.",
   "license": "UNLICENSED",
   "private": true,
   "type": "module",
   "main": "src/entrypoints/cli.tsx",
   "bin": {
-    "claude": "src/entrypoints/cli.tsx"
+    "agclaw-ref": "src/entrypoints/cli.tsx"
   },
   "scripts": {
     "build": "bun scripts/build-bundle.ts",

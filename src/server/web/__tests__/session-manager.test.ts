@@ -5,6 +5,29 @@ import { SessionManager } from "../session-manager.js";
 import type { IPty } from "node-pty";
 import type { WebSocket } from "ws";
 
+type MockFn = ((...args: unknown[]) => void) & {
+  mock: {
+    calls: Array<{ arguments: unknown[] }>;
+    callCount: () => number;
+  };
+};
+
+function createMockFn(): MockFn {
+  if (typeof mock.fn === "function") {
+    return mock.fn() as MockFn;
+  }
+
+  const calls: Array<{ arguments: unknown[] }> = [];
+  const fn = ((...args: unknown[]) => {
+    calls.push({ arguments: args });
+  }) as MockFn;
+  fn.mock = {
+    calls,
+    callCount: () => calls.length,
+  };
+  return fn;
+}
+
 // --- Mock factories ---
 
 function createMockPty(): IPty & { _dataHandler?: (d: string) => void; _exitHandler?: (e: { exitCode: number; signal: number }) => void } {
@@ -17,17 +40,17 @@ function createMockPty(): IPty & { _dataHandler?: (d: string) => void; _exitHand
       mockPty._exitHandler = handler;
       return { dispose() {} };
     },
-    write: mock.fn(),
-    resize: mock.fn(),
-    kill: mock.fn(),
+    write: createMockFn(),
+    resize: createMockFn(),
+    kill: createMockFn(),
     pid: 12345,
     cols: 80,
     rows: 24,
     process: "claude",
     handleFlowControl: false,
-    pause: mock.fn(),
-    resume: mock.fn(),
-    clear: mock.fn(),
+    pause: createMockFn(),
+    resume: createMockFn(),
+    clear: createMockFn(),
     _dataHandler: undefined as ((d: string) => void) | undefined,
     _exitHandler: undefined as ((e: { exitCode: number; signal: number }) => void) | undefined,
   };
@@ -40,8 +63,8 @@ function createMockWs(): WebSocket & EventEmitter {
     OPEN: 1,
     CONNECTING: 0,
     readyState: 1,
-    send: mock.fn(),
-    close: mock.fn(),
+    send: createMockFn(),
+    close: createMockFn(),
   });
   return ws as unknown as WebSocket & EventEmitter;
 }
@@ -52,10 +75,12 @@ describe("SessionManager", () => {
     const manager = new SessionManager(5, () => mockPty);
     const ws = createMockWs();
 
-    const session = manager.create(ws);
-    assert.ok(session);
+    const token = manager.create(ws);
+    assert.ok(token);
     assert.equal(manager.activeCount, 1);
-    assert.ok(session.id);
+    const session = manager.getSession(token);
+    assert.ok(session);
+    assert.equal(session.token, token);
     assert.equal(session.ws, ws);
     assert.equal(session.pty, mockPty);
   });
@@ -81,7 +106,7 @@ describe("SessionManager", () => {
 
     // Simulate PTY output
     mockPty._dataHandler?.("hello world");
-    assert.equal((ws.send as ReturnType<typeof mock.fn>).mock.callCount(), 1);
+    assert.equal((ws.send as MockFn).mock.callCount(), 1);
   });
 
   it("forwards WebSocket input to PTY", () => {
@@ -93,7 +118,7 @@ describe("SessionManager", () => {
 
     // Simulate WebSocket input
     ws.emit("message", Buffer.from("ls\n"));
-    assert.equal((mockPty.write as ReturnType<typeof mock.fn>).mock.callCount(), 1);
+    assert.equal((mockPty.write as MockFn).mock.callCount(), 1);
   });
 
   it("handles resize messages", () => {
@@ -104,7 +129,7 @@ describe("SessionManager", () => {
     manager.create(ws);
 
     ws.emit("message", JSON.stringify({ type: "resize", cols: 120, rows: 40 }));
-    assert.equal((mockPty.resize as ReturnType<typeof mock.fn>).mock.callCount(), 1);
+    assert.equal((mockPty.resize as MockFn).mock.callCount(), 1);
   });
 
   it("handles ping messages with pong response", () => {
@@ -116,23 +141,27 @@ describe("SessionManager", () => {
 
     ws.emit("message", JSON.stringify({ type: "ping" }));
     // Should have sent connected + pong
-    const calls = (ws.send as ReturnType<typeof mock.fn>).mock.calls;
+    const calls = (ws.send as MockFn).mock.calls;
     const lastCall = calls[calls.length - 1];
     assert.ok(lastCall);
     const parsed = JSON.parse(lastCall.arguments[0] as string);
     assert.equal(parsed.type, "pong");
   });
 
-  it("cleans up session on WebSocket close", () => {
+  it("starts grace period on WebSocket close", () => {
     const mockPty = createMockPty();
     const manager = new SessionManager(5, () => mockPty);
     const ws = createMockWs();
 
-    manager.create(ws);
+    const token = manager.create(ws);
+    assert.ok(token);
     assert.equal(manager.activeCount, 1);
 
     ws.emit("close");
-    assert.equal(manager.activeCount, 0);
+    const session = manager.getSession(token);
+    assert.ok(session);
+    assert.equal(session.ws, null);
+    assert.equal(manager.activeCount, 1);
   });
 
   it("handles PTY spawn failure gracefully", () => {
@@ -143,7 +172,7 @@ describe("SessionManager", () => {
 
     const session = manager.create(ws);
     assert.equal(session, null);
-    assert.equal((ws.close as ReturnType<typeof mock.fn>).mock.callCount(), 1);
+    assert.equal((ws.close as MockFn).mock.callCount(), 1);
   });
 
   it("destroyAll cleans up all sessions", () => {
