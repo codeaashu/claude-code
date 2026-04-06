@@ -1,7 +1,7 @@
 import type { ModelName } from './model.js'
-import type { APIProvider } from './providers.js'
 
-export type ModelConfig = Record<APIProvider, ModelName>
+export type ModelConfig = Record<'firstParty' | 'bedrock' | 'vertex' | 'foundry', ModelName> &
+  Partial<Record<'minimax', ModelName>>
 
 // @[MODEL LAUNCH]: Add a new CLAUDE_*_CONFIG constant here. Double check the correct model strings
 // here since the pattern may change.
@@ -83,6 +83,22 @@ export const CLAUDE_SONNET_4_6_CONFIG = {
   foundry: 'claude-sonnet-4-6',
 } as const satisfies ModelConfig
 
+export const MINIMAX_M2_7_CONFIG = {
+  firstParty: 'MiniMax-M2.7',
+  bedrock: 'MiniMax-M2.7',
+  vertex: 'MiniMax-M2.7',
+  foundry: 'MiniMax-M2.7',
+  minimax: 'MiniMax-M2.7',
+} as const satisfies ModelConfig
+
+export const MINIMAX_M2_7_HIGHSPEED_CONFIG = {
+  firstParty: 'MiniMax-M2.7-highspeed',
+  bedrock: 'MiniMax-M2.7-highspeed',
+  vertex: 'MiniMax-M2.7-highspeed',
+  foundry: 'MiniMax-M2.7-highspeed',
+  minimax: 'MiniMax-M2.7-highspeed',
+} as const satisfies ModelConfig
+
 // @[MODEL LAUNCH]: Register the new config here.
 export const ALL_MODEL_CONFIGS = {
   haiku35: CLAUDE_3_5_HAIKU_CONFIG,
@@ -96,6 +112,8 @@ export const ALL_MODEL_CONFIGS = {
   opus41: CLAUDE_OPUS_4_1_CONFIG,
   opus45: CLAUDE_OPUS_4_5_CONFIG,
   opus46: CLAUDE_OPUS_4_6_CONFIG,
+  minimaxM27: MINIMAX_M2_7_CONFIG,
+  minimaxM27hs: MINIMAX_M2_7_HIGHSPEED_CONFIG,
 } as const satisfies Record<string, ModelConfig>
 
 export type ModelKey = keyof typeof ALL_MODEL_CONFIGS

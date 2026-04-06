@@ -297,6 +297,16 @@ export async function getAnthropicClient({
     return new AnthropicVertex(vertexArgs) as unknown as Anthropic
   }
 
+  if (isEnvTruthy(process.env.CLAUDE_CODE_USE_MINIMAX)) {
+    const minimaxConfig: ConstructorParameters<typeof Anthropic>[0] = {
+      apiKey: process.env.MINIMAX_API_KEY,
+      baseURL: process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.io/anthropic',
+      ...ARGS,
+      ...(isDebugToStdErr() && { logger: createStderrLogger() }),
+    }
+    return new Anthropic(minimaxConfig)
+  }
+
   // Determine authentication method based on available tokens
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
     apiKey: isClaudeAISubscriber() ? null : apiKey || getAnthropicApiKey(),
