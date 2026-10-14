@@ -1,14 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "mcp-server/api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["src/**", "mcp-server/src/**", "mcp-server/dist/**", "README.md"]
-      }
-    }
-  ],
   "routes": [
     { "src": "/health", "dest": "mcp-server/api/index.ts" },
     { "src": "/mcp", "dest": "mcp-server/api/index.ts" },
