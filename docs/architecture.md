@@ -2,6 +2,10 @@
 
 > Deep-dive into how Claude Code is structured internally.
 
+> 📐 **Looking for the full code-grounded deep dive with architecture diagrams?**
+> See [`docs/internals/`](internals/README.md) — a 14-part guide (master Mermaid diagrams +
+> per-subsystem walkthroughs of the query loop, tools, permissions, MCP, agents, bridge, and more).
+
 ---
 
 ## High-Level Overview
