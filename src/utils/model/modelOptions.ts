@@ -208,6 +208,15 @@ function getHaikuOption(): ModelOption {
     : getHaiku35Option()
 }
 
+function getMiniMaxM3Option(): ModelOption {
+  return {
+    value: getModelStrings().minimaxM3,
+    label: 'MiniMax M3',
+    description: 'MiniMax M3 · Alternative reasoning model',
+    descriptionForModel: 'MiniMax M3 - alternative reasoning model',
+  }
+}
+
 function getMaxOpusOption(fastMode = false): ModelOption {
   return {
     value: 'opus',
@@ -321,6 +330,11 @@ function getModelOptionsBase(fastMode = false): ModelOption[] {
 
     standardOptions.push(MaxHaiku45Option)
     return standardOptions
+  }
+
+  // PAYG MiniMax: Flash is the default, with M3 as the next model option.
+  if (getAPIProvider() === 'minimax') {
+    return [getDefaultOptionForUser(fastMode), getMiniMaxM3Option()]
   }
 
   // PAYG 1P API: Default (Sonnet) + Sonnet 1M + Opus 4.6 + Opus 1M + Haiku

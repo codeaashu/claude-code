@@ -52,6 +52,10 @@ import {
  *   which supports multiple auth methods (environment variables, managed identity,
  *   Azure CLI, etc.). See: https://docs.microsoft.com/en-us/javascript/api/@azure/identity
  *
+ * MiniMax:
+ * - MINIMAX_API_KEY: Required for direct API access
+ * - MINIMAX_BASE_URL: Optional override (default: https://api.minimax.io/anthropic)
+ *
  * Vertex AI:
  * - Model-specific region variables (highest priority):
  *   - VERTEX_REGION_CLAUDE_3_5_HAIKU: Region for Claude 3.5 Haiku model
@@ -132,7 +136,7 @@ export async function getAnthropicClient({
   await checkAndRefreshOAuthTokenIfNeeded()
   logForDebugging('[API:auth] OAuth token check complete')
 
-  if (!isClaudeAISubscriber()) {
+  if (!isClaudeAISubscriber() && getAPIProvider() !== 'minimax') {
     await configureApiKeyHeaders(defaultHeaders, getIsNonInteractiveSession())
   }
 
@@ -299,15 +303,25 @@ export async function getAnthropicClient({
 
   // Determine authentication method based on available tokens
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
-    apiKey: isClaudeAISubscriber() ? null : apiKey || getAnthropicApiKey(),
+    apiKey:
+      getAPIProvider() === 'minimax'
+        ? process.env.MINIMAX_API_KEY || apiKey
+        : isClaudeAISubscriber()
+          ? null
+          : apiKey || getAnthropicApiKey(),
     authToken: isClaudeAISubscriber()
       ? getClaudeAIOAuthTokens()?.accessToken
       : undefined,
-    // Set baseURL from OAuth config when using staging OAuth
-    ...(process.env.USER_TYPE === 'ant' &&
-    isEnvTruthy(process.env.USE_STAGING_OAUTH)
-      ? { baseURL: getOauthConfig().BASE_API_URL }
-      : {}),
+    // Set baseURL from OAuth config when using staging OAuth or MiniMax's Anthropic-compatible API.
+    ...(getAPIProvider() === 'minimax'
+      ? {
+          baseURL:
+            process.env.MINIMAX_BASE_URL || 'https://api.minimax.io/anthropic',
+        }
+      : process.env.USER_TYPE === 'ant' &&
+          isEnvTruthy(process.env.USE_STAGING_OAUTH)
+        ? { baseURL: getOauthConfig().BASE_API_URL }
+        : {}),
     ...ARGS,
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   }
